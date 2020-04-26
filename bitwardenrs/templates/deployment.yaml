@@ -1,0 +1,73 @@
+{{- $fullName := include "bitwarden.fullname" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bitwarden.fullname" . }}
+  labels:
+    {{- include "bitwarden.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "bitwarden.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations: 
+        backup.velero.io/backup-volumes: data
+      labels:
+        {{- include "bitwarden.selectorLabels" . | nindent 8 }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+          - configMapRef:
+              name: {{ $fullName }}-cm
+          ports:
+            - name: http
+              containerPort: {{ .Values.bitwarden.rocket_port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          {{ if .Values.persistence.enabled -}}
+          volumeMounts:
+          - mountPath: {{ .Values.persistence.mountPath }}
+            name: data
+          {{ end }}    
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{ if .Values.persistence.enabled -}}
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+         claimName: {{ $fullName }}-pv
+      {{- else }}
+        emptyDir: {}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

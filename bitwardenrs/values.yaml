@@ -1,0 +1,139 @@
+# Default values for bitwarden.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: bitwardenrs/server
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+bitwarden:
+  admin_token: pNjO/nRQSre7cqpyzptUy6WcPpDXg8jEm0iCagS0O2KjYes2ZXoHRu/hU5j0FCfe
+  # # Allow registration of new users
+  # # See: https://github.com/dani-garcia/bitwarden_rs#disable-registration-of-new-users
+  signups_allowed: false
+
+  # # Allow current users invite new users even if registrations are otherwise disabled.
+  # # See: https://github.com/dani-garcia/bitwarden_rs#disable-invitations
+  invitations_allowed: true
+
+  # # Email of the unique server administrator account
+  # # See: https://github.com/dani-garcia/bitwarden_rs#configure-server-administrator
+  # server_admin_email: admin@example.com
+
+  # # Websocket support for notifications
+  # # See: https://github.com/dani-garcia/bitwarden_rs#enabling-websocket-notifications
+  # # TODO: Not supported currently: Needs to be added to the ingress controller
+  # websocket_enabled: false
+
+  # # Needed for U2F authentification
+  # # See: https://github.com/dani-garcia/bitwarden_rs#enabling-u2f-authentication
+  # # TODO: Not supported currently
+  # # TODO: Automatically template this into the ingress configuration
+  # domain: https://bw.domain.tld
+
+  # # Configuration of YubiKey OTP
+  # # See: https://github.com/dani-garcia/bitwarden_rs#enabling-yubikey-otp-authentication
+  # yubico_client_id: YUBICO_CLIENT_ID
+  # yubico_secret_key: YUBICO_SECRET_KEY
+
+  # # API request size limits
+  # # See: https://github.com/dani-garcia/bitwarden_rs#changing-the-api-request-size-limit
+  # rocket_limits: "{json=10485760}"
+
+  # # Number of workers to spin up for the service
+  # # See: https://github.com/dani-garcia/bitwarden_rs#changing-the-number-of-workers
+  # rocket_workers: 10
+
+  # # SMTP settings, for sending out emails
+  # # See: https://github.com/dani-garcia/bitwarden_rs/blob/master/README.md#smtp-configuration
+  # smtp_host: smtp.domain.tld
+  # smtp_from: bitwarden@domain.tld
+  # smtp_port: 587
+  # smtp_ssl: true
+  # smtp_username: username
+  # smtp_password: password
+
+  # Show password hint instead of sending it via email
+  # See: https://github.com/dani-garcia/bitwarden_rs#password-hint-display
+  show_password_hints: false
+
+  # Enable Vault interface, when disabled, only API is served
+  # See: https://github.com/dani-garcia/bitwarden_rs#disabling-or-overriding-the-vault-interface-hosting
+  # TODO: enable settings web-vault content; init-container + shared storage + web-vault path?
+  web_vault_enabled: true
+
+  # # Logging to a specific file
+  # # See: https://github.com/dani-garcia/bitwarden_rs#logging
+  # log_file=/data/bitwarden.log
+
+  # Port to serve http requests on
+  rocket_port: 80
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  traefik: 
+    enabled: true
+    entryPoints:
+      - websecure
+    host: bit.niubi.dev
+    tls: 
+      certresolver: myresolver
+  annotations: {}
+    # kubernetes.io/ingress.class: traefik
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: bit.niubi.dev
+      paths: 
+       - /
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+persistence:
+  # Whether storing persistent data is enabled or not
+  enabled: true
+  # Where to store persistent data
+  storageClass: "openebs-jiva-default"
+  mountPath: "/data"
+  # The maximum size of the persisted data
+  size: 1Gi
+  annotations: 
+    app.kubernetes.io/name: bitwardenrs
